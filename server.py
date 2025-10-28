@@ -22,6 +22,8 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         elif path_only == '/api/domain-metrics':
             print("[Routing] Matched domain-metrics endpoint")
             self.handle_domain_metrics()
+        elif path_only == '/api/check-balance':
+            self.handle_check_balance()
         elif path_only.startswith('/api/history/'):
             self.handle_history_request()
         elif path_only == '/api/list-history':
@@ -101,22 +103,50 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         try:
             domain_dir = DATA_DIR / domain
             domain_dir.mkdir(parents=True, exist_ok=True)
-            
+
             timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
             filename = f'{timestamp}.json'
             filepath = domain_dir / filename
-            
+
             # Parse and add metadata
             parsed_data = json.loads(data)
+
+            # Fetch domain metrics if not already included
+            if 'domainMetrics' not in parsed_data:
+                try:
+                    api_key_path = Path(__file__).parent / 'api.txt'
+                    with open(api_key_path, 'r', encoding='utf-8') as f:
+                        api_key = f.read().strip()
+
+                    api_params = urllib.parse.urlencode({
+                        'apikey': api_key,
+                        'app': 'BacklinksAnalyzer',
+                        'domain': domain
+                    })
+
+                    api_url = f'https://domdetailer.com/api/checkDomain.php?{api_params}'
+                    print(f'Fetching domain metrics for save: {api_url}')
+
+                    req = urllib.request.Request(api_url)
+                    req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+
+                    with urllib.request.urlopen(req, timeout=60) as response:
+                        metrics_data = response.read()
+                        parsed_data['domainMetrics'] = json.loads(metrics_data)
+                        print(f'Added domain metrics to save data')
+                except Exception as e:
+                    print(f'Warning: Failed to fetch domain metrics for save: {e}')
+                    parsed_data['domainMetrics'] = {}
+
             parsed_data['_metadata'] = {
                 'domain': domain,
                 'timestamp': timestamp,
                 'saved_at': datetime.now().isoformat()
             }
-            
+
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(parsed_data, f, indent=2)
-            
+
             # Update index
             self.update_index(domain, timestamp, filepath)
             print(f'Saved analysis: {filepath}')
@@ -232,7 +262,87 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(result).encode())
         except Exception as e:
             self.send_error_response(str(e))
-    
+
+    def handle_check_balance(self):
+        """Handle API balance check request"""
+        try:
+            api_key_path = Path(__file__).parent / 'api.txt'
+
+            if not api_key_path.exists():
+                raise FileNotFoundError('API key file (api.txt) not found')
+
+            with open(api_key_path, 'r', encoding='utf-8') as f:
+                api_key = f.read().strip()
+
+            if not api_key:
+                raise ValueError('API key is empty in api.txt')
+
+            api_params = urllib.parse.urlencode({
+                'apikey': api_key,
+                'app': 'BacklinksAnalyzer'
+            })
+
+            # Use v1 API endpoint which returns ["UnitsLeft", "49110"]
+            api_url = f'https://domdetailer.com/api/checkBalance.php?{api_params}'
+            print(f'Checking balance: {api_url}')
+
+            req = urllib.request.Request(api_url)
+            req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+
+            with urllib.request.urlopen(req, timeout=30) as response:
+                data = response.read()
+
+                # Parse the array response and convert to expected format
+                result = json.loads(data)
+                if isinstance(result, list) and len(result) >= 2:
+                    credits_data = {'credits_remaining': int(result[1])}
+                    response_json = json.dumps(credits_data)
+
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(response_json.encode())
+                else:
+                    raise ValueError('Unexpected API response format')
+
+        except FileNotFoundError as e:
+            print(f'File Error: {str(e)}')
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            error_response = json.dumps({'error': 'API key file missing', 'message': str(e)})
+            self.wfile.write(error_response.encode())
+
+        except urllib.error.HTTPError as e:
+            print(f'HTTP Error: {e.code} - {e.reason}')
+            error_body = e.read().decode('utf-8', errors='ignore')
+            print(f'Error body: {error_body}')
+
+            # Check for common error codes
+            error_message = 'API request failed'
+            if e.code == 401 or e.code == 403:
+                error_message = 'Invalid API key'
+            elif e.code == 402:
+                error_message = 'Out of credits'
+
+            self.send_response(e.code)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            error_response = json.dumps({'error': error_message, 'code': e.code})
+            self.wfile.write(error_response.encode())
+
+        except Exception as e:
+            print(f'Error: {type(e).__name__} - {str(e)}')
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            error_response = json.dumps({'error': str(e), 'type': type(e).__name__})
+            self.wfile.write(error_response.encode())
+
     def handle_domain_metrics(self):
         """Handle domain metrics API request (Moz + Majestic + Pretty)"""
         try:

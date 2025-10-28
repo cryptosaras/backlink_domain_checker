@@ -9,6 +9,7 @@ let charts = {};
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     loadAvailableDomains();
+    loadAPICredits();
     console.log('App initialized. Using index.html interface.');
 });
 
@@ -80,23 +81,23 @@ async function handleAnalyze(e) {
             renderAnchorsAnalysis();
             renderDomainsAnalysis();
             renderPagesAnalysis();
-            
+
             showResults();
             switchTab('overview');
             showError('Domain metrics unavailable, showing backlinks only');
             return;
         }
-        
+
         const backlinksData = await backlinksResponse.json();
         const metricsData = await metricsResponse.json();
-        
+
         console.log('Received backlinks:', backlinksData.backlinks?.length || 0);
         console.log('Received metrics:', metricsData);
-        
+
         allBacklinks = backlinksData.backlinks || [];
         currentMetrics = backlinksData.metrics || {};
         currentDomainMetrics = metricsData;
-        
+
         // Render all sections
         renderOverview();
         renderMetricsAnalysis();
@@ -739,12 +740,18 @@ async function loadHistoricalData(filename) {
         
         allBacklinks = data.backlinks || [];
         currentMetrics = data.metrics || {};
+        currentDomainMetrics = data.domainMetrics || {};
         
         renderOverview();
         renderAnchorsAnalysis();
         renderDomainsAnalysis();
         renderPagesAnalysis();
-        
+
+        // Render metrics tab if domain metrics available
+        if (Object.keys(currentDomainMetrics).length > 0) {
+            renderMetricsAnalysis();
+        }
+
         switchTab('overview');
         
         showSuccess('Historical data loaded successfully');
@@ -843,40 +850,130 @@ function switchTab(tabName) {
 
 // History Loader Functions
 let selectedDomainForLoad = null;
+let allDomains = [];
+let currentPage = 1;
+const domainsPerPage = 20;
 
 async function loadAvailableDomains() {
     try {
         const response = await fetch('/api/list-domains');
         const data = await response.json();
-        
-        const domainList = document.getElementById('domainList');
-        
-        if (!data.domains || data.domains.length === 0) {
-            domainList.innerHTML = `
+
+        allDomains = data.domains || [];
+
+        if (allDomains.length === 0) {
+            document.getElementById('domainList').innerHTML = `
                 <div style="text-align: center; padding: 20px; color: #999; grid-column: 1/-1;">
                     <div style="font-size: 3rem; margin-bottom: 10px;">📭</div>
                     <div>No previous analyses found</div>
                     <div style="font-size: 0.9rem; margin-top: 5px;">Analyze a domain to see it here</div>
                 </div>
             `;
+            document.getElementById('domainPagination').style.display = 'none';
             return;
         }
-        
-        domainList.innerHTML = data.domains.map(domain => {
-            const lastDate = domain.last_analysis ? new Date(domain.last_analysis).toLocaleDateString() : 'N/A';
-            return `
-                <div class="domain-card" onclick="selectDomainForLoad('${domain.domain}')" id="domain-${domain.domain}">
-                    <div class="domain-card-name">🌐 ${domain.domain}</div>
-                    <div class="domain-card-info">
-                        <span>${domain.analyses_count} snapshot${domain.analyses_count !== 1 ? 's' : ''}</span>
-                        <span>${lastDate}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
+
+        // Setup search and sort listeners
+        setupDomainControls();
+
+        // Initial render
+        renderDomainList();
     } catch (error) {
         console.error('Failed to load domains:', error);
     }
+}
+
+function setupDomainControls() {
+    const searchInput = document.getElementById('domainSearchInput');
+    const sortSelect = document.getElementById('domainSortSelect');
+
+    searchInput.removeEventListener('input', renderDomainList);
+    sortSelect.removeEventListener('change', renderDomainList);
+
+    searchInput.addEventListener('input', () => {
+        currentPage = 1;
+        renderDomainList();
+    });
+
+    sortSelect.addEventListener('change', () => {
+        currentPage = 1;
+        renderDomainList();
+    });
+}
+
+function renderDomainList() {
+    const searchTerm = document.getElementById('domainSearchInput').value.toLowerCase();
+    const sortType = document.getElementById('domainSortSelect').value;
+
+    // Filter domains
+    let filtered = allDomains.filter(domain =>
+        domain.domain.toLowerCase().includes(searchTerm)
+    );
+
+    // Sort domains
+    if (sortType === 'alphabetical') {
+        filtered.sort((a, b) => a.domain.localeCompare(b.domain));
+    } else if (sortType === 'count') {
+        filtered.sort((a, b) => b.analyses_count - a.analyses_count);
+    } else {
+        // Recent (default)
+        filtered.sort((a, b) => (b.last_analysis || '').localeCompare(a.last_analysis || ''));
+    }
+
+    // Update count
+    document.getElementById('domainCount').textContent = `${filtered.length} domain${filtered.length !== 1 ? 's' : ''}`;
+
+    // Paginate
+    const totalPages = Math.ceil(filtered.length / domainsPerPage);
+    const start = (currentPage - 1) * domainsPerPage;
+    const end = start + domainsPerPage;
+    const paginated = filtered.slice(start, end);
+
+    // Render
+    const domainList = document.getElementById('domainList');
+
+    if (paginated.length === 0) {
+        domainList.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #999; grid-column: 1/-1;">
+                <div style="font-size: 2rem; margin-bottom: 10px;">🔍</div>
+                <div>No domains found</div>
+            </div>
+        `;
+        document.getElementById('domainPagination').style.display = 'none';
+        return;
+    }
+
+    domainList.innerHTML = paginated.map(domain => {
+        const lastDate = domain.last_analysis ? new Date(domain.last_analysis).toLocaleDateString() : 'N/A';
+        return `
+            <div class="domain-card" onclick="selectDomainForLoad('${domain.domain}')" id="domain-${domain.domain}">
+                <div class="domain-card-name">🌐 ${domain.domain}</div>
+                <div class="domain-card-info">
+                    <span>${domain.analyses_count} snapshot${domain.analyses_count !== 1 ? 's' : ''}</span>
+                    <span>${lastDate}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Update pagination
+    if (totalPages > 1) {
+        document.getElementById('domainPagination').style.display = 'flex';
+        document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+
+        // Disable buttons at boundaries
+        const prevBtn = document.querySelector('#domainPagination button:first-child');
+        const nextBtn = document.querySelector('#domainPagination button:last-child');
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+    } else {
+        document.getElementById('domainPagination').style.display = 'none';
+    }
+}
+
+function changeDomainPage(direction) {
+    currentPage += direction;
+    renderDomainList();
 }
 
 async function selectDomainForLoad(domain) {
@@ -936,12 +1033,18 @@ async function loadSnapshot(domain, filename) {
         
         allBacklinks = data.backlinks || [];
         currentMetrics = data.metrics || {};
+        currentDomainMetrics = data.domainMetrics || {};
         
         renderOverview();
         renderAnchorsAnalysis();
         renderDomainsAnalysis();
         renderPagesAnalysis();
-        
+
+        // Render metrics tab if domain metrics available
+        if (Object.keys(currentDomainMetrics).length > 0) {
+            renderMetricsAnalysis();
+        }
+
         showResults();
         switchTab('overview');
         
@@ -1337,4 +1440,28 @@ function generateColors(count) {
         'rgba(121, 85, 72, 0.8)'
     ];
     return colors.slice(0, count);
+}
+
+
+// Load API Credits
+async function loadAPICredits() {
+    try {
+        const response = await fetch('/api/check-balance');
+        const data = await response.json();
+
+        if (response.ok && data.credits_remaining !== undefined) {
+            const credits = parseInt(data.credits_remaining).toLocaleString();
+            document.getElementById('creditsDisplay').innerHTML = `💳 API Credits: <strong>${credits}</strong>`;
+        } else if (data.error) {
+            // Display specific error message from server
+            const errorMsg = data.error || 'Unable to load';
+            const color = data.error.includes('Invalid') || data.error.includes('missing') ? '#f44336' : '#ff9800';
+            document.getElementById('creditsDisplay').innerHTML = `💳 API Credits: <span style="color: ${color};" title="${data.message || ''}">${errorMsg}</span>`;
+        } else {
+            document.getElementById('creditsDisplay').innerHTML = '💳 API Credits: <span style="color: #ff9800;">Unable to load</span>';
+        }
+    } catch (error) {
+        console.error('Failed to load API credits:', error);
+        document.getElementById('creditsDisplay').innerHTML = '💳 API Credits: <span style="color: #f44336;">Connection error</span>';
+    }
 }

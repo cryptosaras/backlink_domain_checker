@@ -708,6 +708,10 @@
         <header class="header">
             <h1>🚀 Pro Backlinks Analyzer</h1>
             <p class="subtitle">Comprehensive SEO Backlink Analysis Platform</p>
+            <div id="apiCredits" class="api-credits" style="margin-top: 20px; font-size: 1.1rem; opacity: 0.9;">
+                <span id="creditsDisplay">Loading API credits...</span>
+                <button onclick="loadAPICredits()" style="margin-left: 10px; padding: 4px 12px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem;" title="Refresh credits">🔄</button>
+            </div>
         </header>
 
         <!-- SEARCH SECTION -->
@@ -738,10 +742,24 @@
                 <span class="history-toggle-icon" id="historyToggleIcon">▼</span>
             </div>
             <div class="history-content" id="historyContent">
+                <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="domainSearchInput" placeholder="🔍 Search domains..." style="flex: 1; min-width: 200px; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 0.875rem;">
+                    <select id="domainSortSelect" style="padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 0.875rem; background: white;">
+                        <option value="recent">Most Recent</option>
+                        <option value="alphabetical">A-Z</option>
+                        <option value="count">Most Analyzed</option>
+                    </select>
+                    <span id="domainCount" style="color: var(--gray); font-size: 0.875rem; white-space: nowrap;"></span>
+                </div>
                 <div class="domain-list" id="domainList">
                     <div style="text-align: center; padding: 20px; color: #999;">
                         Loading domains...
                     </div>
+                </div>
+                <div id="domainPagination" style="display: none; justify-content: center; align-items: center; margin-top: 16px; gap: 12px;">
+                    <button onclick="changeDomainPage(-1)" class="btn btn-secondary" style="padding: 8px 16px;">← Previous</button>
+                    <span id="pageInfo" style="margin: 0 16px; color: var(--gray);"></span>
+                    <button onclick="changeDomainPage(1)" class="btn btn-secondary" style="padding: 8px 16px;">Next →</button>
                 </div>
                 <div class="snapshot-list" id="snapshotList"></div>
             </div>
