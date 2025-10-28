@@ -19,7 +19,7 @@ if not exist "api.txt" (
     echo ERROR: api.txt file not found!
     echo.
     echo Please create api.txt file with your DomDetailer API key.
-    echo Get your API key from: https://domdetailer.com/api
+    echo Get your API key from: https://domdetailer.com/
     echo.
     pause
     exit /b 1
@@ -31,7 +31,7 @@ if %size% LSS 5 (
     echo ERROR: api.txt appears to be empty!
     echo.
     echo Please add your DomDetailer API key to api.txt
-    echo Get your API key from: https://domdetailer.com/api
+    echo Get your API key from: https://domdetailer.com/
     echo.
     pause
     exit /b 1
@@ -45,22 +45,23 @@ echo [2/3] API key file: OK
 echo [3/3] Starting server...
 echo.
 
-REM Start the Python server
-echo Server will start at http://localhost:8001
+echo ========================================
+echo   Server starting at http://localhost:8001
+echo ========================================
+echo.
 echo Opening browser in 3 seconds...
 echo.
-echo Press Ctrl+C to stop the server
+echo IMPORTANT:
+echo - Keep this window OPEN while using the tool
+echo - Your browser will open automatically
+echo - Press Ctrl+C or close this window to STOP the server
 echo.
 
-REM Start server in background and wait a bit
-start /B python server.py
-
-REM Wait 3 seconds for server to start
+REM Wait 3 seconds before opening browser
 timeout /t 3 /nobreak >nul
 
 REM Open browser
 start http://localhost:8001/index.html
 
-REM Keep the window open to show server logs
+REM Start server (keeps window open, shows logs)
 python server.py
-
