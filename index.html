@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Backlinks Analyzer - SEO Analysis Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --gray: #6b7280;
+            --light-gray: #f3f4f6;
+            --border: #e5e7eb;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        .main-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .header {
+            text-align: center;
+            color: var(--white);
+            margin-bottom: 30px;
+            padding: 50px 20px 30px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .header .subtitle {
+            font-size: 1.25rem;
+            opacity: 0.95;
+            font-weight: 400;
+        }
+
+        /* SEARCH SECTION */
+        .search-section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: var(--shadow-xl);
+            margin-bottom: 24px;
+        }
+
+        .search-form {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 16px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 0;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: var(--gray);
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--white);
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--light-gray);
+            color: var(--dark);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        /* HISTORY LOADER */
+        .history-loader {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 24px 32px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .history-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .history-toggle h3 {
+            color: var(--dark);
+            font-size: 1.125rem;
+            font-weight: 700;
+        }
+
+        .history-toggle-icon {
+            font-size: 1.5rem;
+            transition: transform 0.3s;
+            color: var(--gray);
+        }
+
+        .history-toggle-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .history-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .history-content.expanded {
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 24px;
+        }
+
+        .domain-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .domain-card {
+            padding: 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--white);
+        }
+
+        .domain-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .domain-card.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+            box-shadow: var(--shadow);
+        }
+
+        .domain-card-name {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .domain-card-info {
+            font-size: 0.875rem;
+            color: var(--gray);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .snapshot-list {
+            display: none;
+        }
+
+        .snapshot-list.visible {
+            display: block;
+        }
+
+        .snapshot-item {
+            padding: 14px 16px;
+            margin: 8px 0;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--white);
+        }
+
+        .snapshot-item:hover {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.04);
+        }
+
+        .snapshot-date {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        .snapshot-time {
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .snapshot-load-btn {
+            padding: 8px 20px;
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .snapshot-load-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* MESSAGES */
+        .error-message {
+            background: var(--danger);
+            color: var(--white);
+            padding: 16px 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: none;
+            box-shadow: var(--shadow-lg);
+            font-weight: 500;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--white);
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--white);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            background: var(--white);
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-lg);
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--gray);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: var(--light-gray);
+            color: var(--dark);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--white);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        /* TAB CONTENT */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* CONTENT CARDS */
+        .content-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--light-gray);
+        }
+
+        .section-header h2 {
+            color: var(--dark);
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        /* METRICS GRID */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            border-radius: 12px;
+            padding: 24px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .metric-card .metric-label {
+            font-size: 0.8125rem;
+            color: var(--gray);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .metric-card .metric-value {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 6px;
+            line-height: 1;
+        }
+
+        .metric-card .metric-subtext {
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .metric-card .metric-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            opacity: 0.8;
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-excellent { background: #d1fae5; color: #065f46; }
+        .status-good { background: #fed7aa; color: #92400e; }
+        .status-poor { background: #fee2e2; color: #991b1b; }
+        .status-info { background: #dbeafe; color: #1e40af; }
+
+        /* CHARTS */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .chart-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .chart-card h3 {
+            color: var(--dark);
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--light-gray);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 320px;
+        }
+
+        /* FILTER BAR */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: var(--light-gray);
+            border-radius: 10px;
+        }
+
+        .filter-bar select,
+        .filter-bar input[type="text"] {
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: var(--white);
+            transition: border-color 0.2s;
+        }
+
+        .filter-bar input[type="text"] {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .filter-bar select:focus,
+        .filter-bar input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* TABLES */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--white);
+        }
+
+        .data-table thead {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--white);
+        }
+
+        .data-table th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .data-table th.sortable:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+            font-size: 0.9375rem;
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--light-gray);
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* LINKS */
+        .link-cell {
+            max-width: 400px;
+            word-break: break-word;
+        }
+
+        .link-cell a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.2s;
+            font-weight: 500;
+        }
+
+        .link-cell a:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+
+        /* PROGRESS BAR */
+        .progress-bar {
+            height: 8px;
+            background: var(--light-gray);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+
+        /* UTILITY */
+        .tld-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--light-gray);
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .search-form {
+                grid-template-columns: 1fr;
+            }
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            .filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-bar input[type="text"] {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- HEADER -->
+        <header class="header">
+            <h1>🚀 Pro Backlinks Analyzer</h1>
+            <p class="subtitle">Comprehensive SEO Backlink Analysis Platform</p>
+        </header>
+
+        <!-- SEARCH SECTION -->
+        <section class="search-section">
+            <form class="search-form" id="searchForm">
+                <div class="form-group">
+                    <label for="domainInput">🌐 Domain Name</label>
+                    <input type="text" id="domainInput" placeholder="example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="onePerDomain">
+                        <label for="onePerDomain">One backlink per referring domain</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn" id="analyzeBtn">🔍 Analyze Domain</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- HISTORY LOADER -->
+        <section class="history-loader" id="historyLoader">
+            <div class="history-toggle" onclick="toggleHistoryLoader()">
+                <h3>📚 Load Previous Analysis</h3>
+                <span class="history-toggle-icon" id="historyToggleIcon">▼</span>
+            </div>
+            <div class="history-content" id="historyContent">
+                <div class="domain-list" id="domainList">
+                    <div style="text-align: center; padding: 20px; color: #999;">
+                        Loading domains...
+                    </div>
+                </div>
+                <div class="snapshot-list" id="snapshotList"></div>
+            </div>
+        </section>
+
+        <!-- ERROR MESSAGE -->
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- LOADING STATE -->
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p class="loading-text">Analyzing backlinks and domain metrics...</p>
+            <p style="margin-top: 8px; opacity: 0.8;">This may take 15-20 seconds</p>
+        </div>
+
+        <!-- RESULTS SECTION -->
+        <div id="resultsSection" style="display: none;">
+            <!-- TABS NAVIGATION -->
+            <nav class="tabs" id="tabsNav">
+                <button class="tab active" data-tab="overview">📊 Overview</button>
+                <button class="tab" data-tab="metrics">🎯 Authority Metrics</button>
+                <button class="tab" data-tab="anchors">🔗 Anchors</button>
+                <button class="tab" data-tab="domains">🌍 Domains</button>
+                <button class="tab" data-tab="pages">📄 Pages</button>
+                <button class="tab" data-tab="history">📅 History</button>
+            </nav>
+
+            <!-- OVERVIEW TAB -->
+            <div id="overviewTab" class="tab-content active">
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>📊 Key Metrics</h2>
+                    </div>
+                    <div class="metrics-grid" id="metricsGrid"></div>
+                </div>
+
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>🔗 Backlinks Overview</h2>
+                        <button class="btn btn-secondary" onclick="exportToCSV()">📥 Export CSV</button>
+                    </div>
+                    
+                    <div class="filter-bar">
+                        <select id="linkTypeFilter">
+                            <option value="all">All Links</option>
+                            <option value="dofollow">Dofollow Only</option>
+                            <option value="nofollow">Nofollow Only</option>
+                        </select>
+                        <div class="checkbox-wrapper" style="margin: 0;">
+                            <input type="checkbox" id="hideMultiplePerDomain">
+                            <label for="hideMultiplePerDomain">One per domain</label>
+                        </div>
+                        <input type="text" id="searchFilter" placeholder="🔍 Search backlinks...">
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Anchor Text</th>
+                                    <th>Type</th>
+                                    <th>Source URL</th>
+                                    <th>Target URL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="backlinksTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AUTHORITY METRICS TAB -->
+            <div id="metricsTab" class="tab-content">
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>🎯 Authority Metrics Overview</h2>
+                    </div>
+                    <div class="metrics-grid" id="authorityMetricsGrid"></div>
+                </div>
+
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>📈 Authority Charts</h2>
+                    </div>
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>Authority Score Comparison</h3>
+                            <div class="chart-container">
+                                <canvas id="authorityComparisonChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Link Sources Comparison</h3>
+                            <div class="chart-container">
+                                <canvas id="linkSourcesChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Trust vs Citation Flow</h3>
+                            <div class="chart-container">
+                                <canvas id="trustFlowChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Quality Indicators</h3>
+                            <div class="chart-container">
+                                <canvas id="qualityDistributionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>📋 Detailed Metrics</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Source</th>
+                                    <th>Metric</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="metricsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANCHORS TAB -->
+            <div id="anchorsTab" class="tab-content">
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>🔗 Anchor Text Analysis</h2>
+                    </div>
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>Top 10 Anchor Texts</h3>
+                            <div class="chart-container">
+                                <canvas id="anchorChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Anchor Type Distribution</h3>
+                            <div class="chart-container">
+                                <canvas id="anchorTypeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>📋 All Anchor Texts</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" onclick="sortAnchorsTable('text')">Anchor Text ↕</th>
+                                    <th class="sortable" onclick="sortAnchorsTable('count')">Count ↕</th>
+                                    <th>Percentage</th>
+                                    <th class="sortable" onclick="sortAnchorsTable('dofollow')">Dofollow ↕</th>
+                                    <th class="sortable" onclick="sortAnchorsTable('nofollow')">Nofollow ↕</th>
+                                </tr>
+                            </thead>
+                            <tbody id="anchorTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOMAINS TAB -->
+            <div id="domainsTab" class="tab-content">
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>🌍 Referring Domains Analysis</h2>
+                    </div>
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>Top 10 Referring Domains (Pie)</h3>
+                            <div class="chart-container">
+                                <canvas id="tldChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Top 10 Referring Domains (Bar)</h3>
+                            <div class="chart-container">
+                                <canvas id="domainTypeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>📋 All Referring Domains</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" onclick="sortDomainsTable('domain')">Domain ↕</th>
+                                    <th class="sortable" onclick="sortDomainsTable('count')">Links ↕</th>
+                                    <th class="sortable" onclick="sortDomainsTable('tld')">TLD ↕</th>
+                                    <th class="sortable" onclick="sortDomainsTable('dofollow')">Dofollow ↕</th>
+                                    <th class="sortable" onclick="sortDomainsTable('nofollow')">Nofollow ↕</th>
+                                </tr>
+                            </thead>
+                            <tbody id="domainsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGES TAB -->
+            <div id="pagesTab" class="tab-content">
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>📄 Top Linked Pages</h2>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Top 15 Most Linked Pages</h3>
+                        <div class="chart-container">
+                            <canvas id="pagesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>📋 All Target Pages</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" onclick="sortPagesTable('url')">Target URL ↕</th>
+                                    <th class="sortable" onclick="sortPagesTable('count')">Backlinks ↕</th>
+                                    <th>Percentage</th>
+                                    <th class="sortable" onclick="sortPagesTable('dofollow')">Dofollow ↕</th>
+                                    <th class="sortable" onclick="sortPagesTable('nofollow')">Nofollow ↕</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pagesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTORY TAB -->
+            <div id="historyTab" class="tab-content">
+                <div class="content-card">
+                    <div class="section-header">
+                        <h2>📅 Analysis History</h2>
+                        <button class="btn btn-secondary" onclick="loadHistory()">🔄 Refresh</button>
+                    </div>
+                    <div id="historyContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

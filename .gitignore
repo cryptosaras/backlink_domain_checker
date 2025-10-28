@@ -1,0 +1,37 @@
+# API Key - NEVER COMMIT THIS
+api.txt
+
+# Data directory
+data/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Server process
+*.pid
+server.pid
+
+# Logs
+*.log
+
