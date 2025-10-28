@@ -6,8 +6,9 @@ let currentDomainMetrics = {};
 let charts = {};
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
+    await loadServerMetricsCache();
     loadAvailableDomains();
     loadAPICredits();
     console.log('App initialized. Using index.html interface.');
@@ -488,20 +489,48 @@ let domainSortDirection = 'desc';
 
 function renderDomainTable(domainStats) {
     const tbody = document.getElementById('domainsTableBody');
-    
+
     // Store for sorting
     window.currentDomainStats = domainStats;
-    
-    tbody.innerHTML = domainStats.map(domain => {
+
+    // Check cache for each domain and populate metrics
+    domainStats.forEach((domain, index) => {
+        const cached = domainMetricsCache.get(domain.domain);
+        if (cached && cached._cached_at) {
+            const cacheAge = Date.now() - new Date(cached._cached_at).getTime();
+            if (cacheAge < 7 * 24 * 60 * 60 * 1000) {
+                domain.mozDA = cached.mozDA || 0;
+                domain.mozPA = cached.mozPA || 0;
+                domain.majesticTF = cached.majesticTF || 0;
+                domain.majesticCF = cached.majesticCF || 0;
+                domain.majesticRefDomains = cached.majesticRefDomains || 0;
+            }
+        }
+    });
+
+    tbody.innerHTML = domainStats.map((domain, index) => {
         const tldClass = ['edu', 'gov'].includes(domain.tld) ? 'badge-info' : 'tld-badge';
-        
+
+        // Display cached values or dash
+        const mozDA = domain.mozDA ? `<span style="color: #4caf50; font-weight: 600;">${domain.mozDA}</span>` : '-';
+        const mozPA = domain.mozPA ? `<span style="color: #4caf50; font-weight: 600;">${domain.mozPA}</span>` : '-';
+        const majesticTF = domain.majesticTF ? `<span style="color: #2196f3; font-weight: 600;">${domain.majesticTF}</span>` : '-';
+        const majesticCF = domain.majesticCF ? `<span style="color: #2196f3; font-weight: 600;">${domain.majesticCF}</span>` : '-';
+        const majesticRD = domain.majesticRefDomains ? domain.majesticRefDomains : '-';
+
         return `
-            <tr>
+            <tr id="domain-row-${index}">
+                <td><input type="checkbox" class="domain-checkbox" data-index="${index}" data-domain="${escapeHtml(domain.domain)}" onchange="updateCheckDomainsButton()"></td>
                 <td><a href="http://${escapeHtml(domain.domain)}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: none; font-weight: 600;">${escapeHtml(domain.domain)}</a></td>
                 <td><strong>${domain.count}</strong></td>
                 <td><span class="${tldClass}">.${domain.tld}</span></td>
                 <td><span class="badge badge-success">${domain.dofollow}</span></td>
                 <td><span class="badge badge-warning">${domain.nofollow}</span></td>
+                <td id="mozDA-${index}">${mozDA}</td>
+                <td id="mozPA-${index}">${mozPA}</td>
+                <td id="majesticTF-${index}">${majesticTF}</td>
+                <td id="majesticCF-${index}">${majesticCF}</td>
+                <td id="majesticRD-${index}">${majesticRD}</td>
             </tr>
         `;
     }).join('');
@@ -509,30 +538,34 @@ function renderDomainTable(domainStats) {
 
 function sortDomainsTable(column) {
     if (!window.currentDomainStats) return;
-    
+
     if (domainSortColumn === column) {
         domainSortDirection = domainSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
         domainSortColumn = column;
         domainSortDirection = 'desc';
     }
-    
+
     const sorted = [...window.currentDomainStats].sort((a, b) => {
         let aVal = a[column];
         let bVal = b[column];
-        
+
         if (column === 'domain' || column === 'tld') {
             aVal = String(aVal).toLowerCase();
             bVal = String(bVal).toLowerCase();
+        } else {
+            // Handle numeric columns including new metrics columns
+            aVal = parseFloat(aVal) || 0;
+            bVal = parseFloat(bVal) || 0;
         }
-        
+
         if (domainSortDirection === 'asc') {
             return aVal > bVal ? 1 : -1;
         } else {
             return aVal < bVal ? 1 : -1;
         }
     });
-    
+
     renderDomainTable(sorted);
     updateSortIndicators('domains');
 }
@@ -1442,6 +1475,127 @@ function generateColors(count) {
     return colors.slice(0, count);
 }
 
+// Domain metrics cache (server-side)
+let serverMetricsCache = {};
+
+async function loadServerMetricsCache() {
+    try {
+        const response = await fetch('/api/get-cached-metrics');
+        const data = await response.json();
+        serverMetricsCache = data || {};
+        console.log(`Loaded ${Object.keys(serverMetricsCache).length} cached domain metrics from server`);
+        return serverMetricsCache;
+    } catch (error) {
+        console.error('Failed to load server metrics cache:', error);
+        return {};
+    }
+}
+
+const domainMetricsCache = {
+    get: function(domain) {
+        return serverMetricsCache[domain] || null;
+    },
+    set: function(domain, metrics) {
+        serverMetricsCache[domain] = {
+            ...metrics,
+            _cached_at: new Date().toISOString()
+        };
+    }
+};
+
+async function checkSelectedDomains() {
+    const selectedCheckboxes = document.querySelectorAll('.domain-checkbox:checked');
+    if (selectedCheckboxes.length === 0) return;
+
+    const btn = document.getElementById('checkDomainsBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Checking...';
+
+    let completed = 0;
+    const total = selectedCheckboxes.length;
+    const concurrency = 10; // 10 parallel threads
+
+    // Convert to array for processing
+    const tasks = Array.from(selectedCheckboxes).map(checkbox => ({
+        index: checkbox.dataset.index,
+        domain: checkbox.dataset.domain
+    }));
+
+    // Process in batches with concurrency limit
+    const processBatch = async (batch) => {
+        return Promise.all(batch.map(async (task) => {
+            const { index, domain } = task;
+
+            try {
+                // Check cache first
+                const cached = domainMetricsCache.get(domain);
+                let metrics;
+
+                if (cached && cached._cached_at) {
+                    const cacheAge = Date.now() - new Date(cached._cached_at).getTime();
+                    if (cacheAge < 7 * 24 * 60 * 60 * 1000) {
+                        // Use cached data if less than 7 days old
+                        metrics = cached;
+                        console.log(`Using cached metrics for ${domain}`);
+                    }
+                }
+
+                if (!metrics) {
+                    // Fetch from API
+                    const response = await fetch(`/api/domain-metrics?domain=${encodeURIComponent(domain)}`);
+                    metrics = await response.json();
+
+                    if (response.ok) {
+                        // Cache the full response
+                        domainMetricsCache.set(domain, metrics);
+                    }
+                }
+
+                if (metrics) {
+                    // Update the row with metrics (with styling)
+                    const mozDA = metrics.mozDA ? `<span style="color: #4caf50; font-weight: 600;">${metrics.mozDA}</span>` : '-';
+                    const mozPA = metrics.mozPA ? `<span style="color: #4caf50; font-weight: 600;">${metrics.mozPA}</span>` : '-';
+                    const majesticTF = metrics.majesticTF ? `<span style="color: #2196f3; font-weight: 600;">${metrics.majesticTF}</span>` : '-';
+                    const majesticCF = metrics.majesticCF ? `<span style="color: #2196f3; font-weight: 600;">${metrics.majesticCF}</span>` : '-';
+                    const majesticRD = metrics.majesticRefDomains || '-';
+
+                    document.getElementById(`mozDA-${index}`).innerHTML = mozDA;
+                    document.getElementById(`mozPA-${index}`).innerHTML = mozPA;
+                    document.getElementById(`majesticTF-${index}`).innerHTML = majesticTF;
+                    document.getElementById(`majesticCF-${index}`).innerHTML = majesticCF;
+                    document.getElementById(`majesticRD-${index}`).textContent = majesticRD;
+
+                    // Update the stored data
+                    if (window.currentDomainStats && window.currentDomainStats[index]) {
+                        window.currentDomainStats[index].mozDA = metrics.mozDA || 0;
+                        window.currentDomainStats[index].mozPA = metrics.mozPA || 0;
+                        window.currentDomainStats[index].majesticTF = metrics.majesticTF || 0;
+                        window.currentDomainStats[index].majesticCF = metrics.majesticCF || 0;
+                        window.currentDomainStats[index].majesticRefDomains = metrics.majesticRefDomains || 0;
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to check metrics for ${domain}:`, error);
+            }
+
+            completed++;
+            btn.textContent = `⏳ Checking... (${completed}/${total})`;
+        }));
+    };
+
+    // Process all tasks in batches of 10
+    for (let i = 0; i < tasks.length; i += concurrency) {
+        const batch = tasks.slice(i, i + concurrency);
+        await processBatch(batch);
+    }
+
+    btn.disabled = false;
+    updateCheckDomainsButton();
+    showSuccess(`Checked metrics for ${total} domain${total !== 1 ? 's' : ''}`);
+
+    // Reload credits
+    loadAPICredits();
+}
 
 // Load API Credits
 async function loadAPICredits() {
@@ -1463,5 +1617,33 @@ async function loadAPICredits() {
     } catch (error) {
         console.error('Failed to load API credits:', error);
         document.getElementById('creditsDisplay').innerHTML = '💳 API Credits: <span style="color: #f44336;">Connection error</span>';
+    }
+}
+
+// Toggle select all domains checkbox
+function toggleSelectAllDomains() {
+    const selectAll = document.getElementById('selectAllDomains');
+    const checkboxes = document.querySelectorAll('.domain-checkbox');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+
+    updateCheckDomainsButton();
+}
+
+// Update check domains button text with count and cost
+function updateCheckDomainsButton() {
+    const selectedCheckboxes = document.querySelectorAll('.domain-checkbox:checked');
+    const count = selectedCheckboxes.length;
+    const btn = document.getElementById('checkDomainsBtn');
+
+    if (count === 0) {
+        btn.disabled = true;
+        btn.textContent = '🔍 Check Selected Metrics';
+    } else {
+        btn.disabled = false;
+        const cost = (count * 0.00112).toFixed(4);
+        btn.textContent = `🔍 Check Selected Metrics (${count}) - $${cost}`;
     }
 }

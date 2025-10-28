@@ -24,6 +24,8 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_domain_metrics()
         elif path_only == '/api/check-balance':
             self.handle_check_balance()
+        elif path_only == '/api/get-cached-metrics':
+            self.handle_get_cached_metrics()
         elif path_only.startswith('/api/history/'):
             self.handle_history_request()
         elif path_only == '/api/list-history':
@@ -372,7 +374,10 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             
             with urllib.request.urlopen(req, timeout=60) as response:
                 data = response.read()
-                
+
+                # Save domain metrics to cache
+                self.save_domain_metrics_cache(domain, data)
+
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
@@ -405,7 +410,61 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.wfile.write(json.dumps({'error': message}).encode())
-    
+
+    def save_domain_metrics_cache(self, domain, data):
+        """Save domain metrics to cache file"""
+        try:
+            cache_dir = DATA_DIR / '_domain_metrics_cache'
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Sanitize domain name for filename
+            safe_domain = domain.replace('/', '_').replace('\\', '_')
+            cache_file = cache_dir / f'{safe_domain}.json'
+
+            # Parse and add timestamp
+            metrics = json.loads(data)
+            metrics['_cached_at'] = datetime.now().isoformat()
+
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(metrics, f, indent=2)
+
+            print(f'Cached domain metrics: {cache_file}')
+        except Exception as e:
+            print(f'Failed to cache domain metrics: {e}')
+
+    def handle_get_cached_metrics(self):
+        """Get all cached domain metrics"""
+        try:
+            cache_dir = DATA_DIR / '_domain_metrics_cache'
+
+            if not cache_dir.exists():
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({}).encode())
+                return
+
+            cached_metrics = {}
+            for cache_file in cache_dir.glob('*.json'):
+                try:
+                    with open(cache_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        domain = cache_file.stem
+                        cached_metrics[domain] = data
+                except Exception as e:
+                    print(f'Failed to read cache file {cache_file}: {e}')
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(cached_metrics).encode())
+
+        except Exception as e:
+            print(f'Error: {type(e).__name__} - {str(e)}')
+            self.send_error_response(str(e))
+
     def end_headers(self):
         self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
         super().end_headers()

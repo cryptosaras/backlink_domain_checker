@@ -960,16 +960,23 @@
                 <div class="content-card">
                     <div class="section-header">
                         <h2>📋 All Referring Domains</h2>
+                        <button class="btn" onclick="checkSelectedDomains()" id="checkDomainsBtn" disabled>🔍 Check Selected Metrics</button>
                     </div>
                     <div class="table-wrapper">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="selectAllDomains" onchange="toggleSelectAllDomains()"></th>
                                     <th class="sortable" onclick="sortDomainsTable('domain')">Domain ↕</th>
                                     <th class="sortable" onclick="sortDomainsTable('count')">Links ↕</th>
                                     <th class="sortable" onclick="sortDomainsTable('tld')">TLD ↕</th>
                                     <th class="sortable" onclick="sortDomainsTable('dofollow')">Dofollow ↕</th>
                                     <th class="sortable" onclick="sortDomainsTable('nofollow')">Nofollow ↕</th>
+                                    <th class="sortable" onclick="sortDomainsTable('mozDA')">Moz DA ↕</th>
+                                    <th class="sortable" onclick="sortDomainsTable('mozPA')">Moz PA ↕</th>
+                                    <th class="sortable" onclick="sortDomainsTable('majesticTF')">TF ↕</th>
+                                    <th class="sortable" onclick="sortDomainsTable('majesticCF')">CF ↕</th>
+                                    <th class="sortable" onclick="sortDomainsTable('majesticRD')">Ref Domains ↕</th>
                                 </tr>
                             </thead>
                             <tbody id="domainsTableBody"></tbody>
