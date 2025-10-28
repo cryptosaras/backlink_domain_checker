@@ -6,11 +6,16 @@ A powerful, local SEO backlink analysis tool that provides comprehensive domain 
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.6+-blue.svg)
-![Cost](https://img.shields.io/badge/cost-$0.0045%20per%20domain-green.svg)
+![Cost](https://img.shields.io/badge/cost-$0.0022%20per%20check-green.svg)
 
 ## 💰 Pricing
 
-Using this tool costs **$0.0045 per domain** for backlinks data via the DomDetailer API. Credits never expire, making it an affordable solution for backlink analysis.
+Using this tool costs **$0.0022 per check** via the DomDetailer API. Each check includes:
+- 📊 Complete backlinks data
+- 🎯 Moz metrics (Domain Authority, Page Authority, etc.)
+- 🔗 Majestic metrics (Citation Flow, Trust Flow, etc.)
+
+**Credits never expire**, making it an affordable solution for comprehensive backlink and authority analysis.
 
 ## 📸 Screenshots
 
@@ -35,6 +40,7 @@ Using this tool costs **$0.0045 per domain** for backlinks data via the DomDetai
 - 📄 **Target Pages** - See which pages get the most backlinks
 - 📅 **Historical Tracking** - Save and compare analysis over time
 - 📥 **CSV Export** - Export backlinks data for further analysis
+- 💳 **API Balance Checker** - Monitor your DomDetailer API credits in real-time
 - 🎨 **Beautiful UI** - Modern, responsive interface with charts and visualizations
 
 ## 📋 Prerequisites
