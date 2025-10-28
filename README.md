@@ -2,8 +2,29 @@
 
 A powerful, local SEO backlink analysis tool that provides comprehensive domain metrics, backlink analysis, and historical tracking. Built for local usage with no external dependencies.
 
+> **⚠️ Disclaimer:** This project is not officially supported and was built for personal use. Use at your own discretion.
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.6+-blue.svg)
+![Cost](https://img.shields.io/badge/cost-$0.0045%20per%20domain-green.svg)
+
+## 💰 Pricing
+
+Using this tool costs **$0.0045 per domain** for backlinks data via the DomDetailer API. Credits never expire, making it an affordable solution for backlink analysis.
+
+## 📸 Screenshots
+
+![Overview Dashboard](https://i.imgur.com/1Wq5cmA.png)
+
+![Authority Metrics](https://i.imgur.com/gJjx7UG.png)
+
+![Anchor Analysis](https://i.imgur.com/8h1Gayu.png)
+
+![Referring Domains](https://i.imgur.com/n1qDX7L.png)
+
+![Target Pages](https://i.imgur.com/3eLN46v.png)
+
+![Historical Data](https://i.imgur.com/5ClZbC7.png)
 
 ## ✨ Features
 
@@ -19,13 +40,13 @@ A powerful, local SEO backlink analysis tool that provides comprehensive domain 
 ## 📋 Prerequisites
 
 - **Python 3.6 or higher** - [Download Python](https://www.python.org/downloads/)
-- **DomDetailer API Key** - [Get Your API Key](https://domdetailer.com/api)
+- **DomDetailer API Key** - [Get Your API Key](https://domdetailer.com/)
 
 ## 🚀 Quick Start
 
 ### Step 1: Get Your API Key
 
-1. Visit [https://domdetailer.com/api](https://domdetailer.com/api)
+1. Visit [https://domdetailer.com/](https://domdetailer.com/)
 2. Sign up or log in to your account
 3. Copy your API key from the dashboard
 
@@ -168,7 +189,7 @@ The server provides several API endpoints:
 
 ## 🤝 Contributing
 
-This is a local tool, but improvements are welcome! Feel free to:
+This project was built for personal use and is not officially supported. However, improvements are welcome! Feel free to:
 - Report bugs
 - Suggest features
 - Submit pull requests
@@ -186,11 +207,9 @@ This project is licensed under the MIT License.
 
 For API-related issues, contact DomDetailer support:
 - Website: [https://domdetailer.com](https://domdetailer.com)
-- API Documentation: [https://domdetailer.com/api](https://domdetailer.com/api)
 
 ---
 
 **Made with ❤️ for SEO professionals**
 
 For best results, use with domains that have established backlink profiles. New domains may have limited data available.
-
